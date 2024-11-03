@@ -1,12 +1,14 @@
-import torch
-from torch import nn
 from dataclasses import dataclass
+
+from torch import nn
+
 
 @dataclass
 class ConvParameters:
     in_channels: int
     out_channels: int
     kernel_size: int
+
 
 class CAFBlock(nn.Module):
     def __init__(self, video_params: ConvParameters, audio_params: ConvParameters, heads: int):
@@ -55,8 +57,7 @@ class CAFBlock(nn.Module):
         a_gate = self.audio_conv2(audio_features)
         a_gate = self.relu(a_gate)
 
-        f_1 = v_attn.unsqueeze(-1) * a_val # возможно, нужно поменять порядок
+        f_1 = v_attn.unsqueeze(-1) * a_val
         f_2 = a_gate * v_key.unsqueeze(-1)
 
         return f_1 + f_2
-
