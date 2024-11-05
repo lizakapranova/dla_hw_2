@@ -4,9 +4,6 @@ import torch
 from torch.nn import Sequential
 import torch.nn.functional as F
 
-from src.model.attention import MultiHeadSelfAttention
-from src.model.fusion import TF_AR
-
 
 class SRU(nn.Module): # TODO ?
     """
@@ -20,12 +17,62 @@ class SRU(nn.Module): # TODO ?
         return x
 
 
+class ConvNorm(nn.Module):
+    """
+    Depth-wise convolution with group layer norm
+    """
+
+    def __init__(self, kernel, stride, padding, in_channels, out_channels):
+        """
+        Args:
+            args for Conv2d
+        """
+        super().__init__()
+
+        self.conv = nn.Conv2d(
+            in_channels,
+            out_channels,
+            kernel,
+            stride=stride,
+            padding=padding,
+            groups=in_channels
+        )
+        self.norm = nn.GroupNorm(1, out_channels)
+
+    def forward(self, x):
+        return self.norm(self.conv(x))
+
+
+class TF_AR(nn.Module):
+    """
+    Temporal-Frequency Attention Reconstruction
+    """
+
+    def __init__(self, channels):
+        """
+        Args:
+            channels - number of input and output channels
+        """
+        super().__init__()
+
+        self.W1 = ConvNorm((4, 4), (1, 1), "same", channels, channels) # warning ignore?
+        self.W2 = ConvNorm((4, 4), (1, 1), "same", channels, channels)
+        self.W3 = ConvNorm((4, 4), (1, 1), "same", channels, channels)
+
+    def forward(self, m, n): # shape of n < shape of m     
+        x1 = nn.functional.interpolate(nn.functional.sigmoid(self.W1(n)), size=m.shape[-2:], mode="nearest")
+        x2 = self.W2(m)
+        x3 = nn.functional.interpolate(self.W3(n), size=m.shape[-2:], mode="nearest")
+
+        return x1 * x2 + x3
+
+
 class RTFSBlock(nn.Module):
     """
     RTFS block
     """
 
-    def __init__(self, q=2, Ca=256, D=64, hidden_size=32, rnn_layers=4, n_freqs=64, n_head=4, layers=1):
+    def __init__(self, q=2, Ca=256, D=64, hidden_size=32, rnn_layers=4, layers=1):
         """
         Args:
             q - number of compression steps
@@ -33,9 +80,10 @@ class RTFSBlock(nn.Module):
             D - compressed number of channels
             hidden_size - size of hidden vector in RNN
             rnn_layers - number of layers in RNN
-            n_freqs - number of frequencies
-            n_head - number of heads for self-attention
             layers - number of iterations to process with RTFS block
+
+        Returns:
+            tensor of same shape as input
         """
         super().__init__()
 
@@ -46,7 +94,7 @@ class RTFSBlock(nn.Module):
         self.channel_down = nn.Conv2d(Ca, D, (1, 1))
         self.channel_up = nn.Conv2d(D, Ca, (1, 1))
         self.convs = nn.ModuleList() # convolutions for compression
-        self.reconstruction1 = nn.ModuleList() # convolutions for reconstructions (1st phase)
+        self.reconstruction1 = nn.ModuleList() # convolutions for reconsturctions (1st phase)
         self.reconstruction2 = nn.ModuleList() # convolutions for reconstructions (2nd phase)
 
         for _ in range(q):
@@ -77,15 +125,13 @@ class RTFSBlock(nn.Module):
         self.frequency_conv_t = nn.ConvTranspose2d(2 * hidden_size, D, kernel_size=(1, 8), stride=(1, 1))
         self.time_conv_t = nn.ConvTranspose2d(2 * hidden_size, D, kernel_size=(8, 1), stride=(1, 1))
 
-        self.attention = MultiHeadSelfAttention(D, n_head, n_freqs // 2**q)
-
 
     def forward(self, x, **batch):
         """
-        Block forward method.
+        Model forward method.
 
         Args:
-            x (Tensor): input tensor of shape (B, Ca, T_dim, F_dim)
+            x (Tensor): input tensor.
         Returns:
             tensor of same shape as input
         """      
@@ -128,9 +174,9 @@ class RTFSBlock(nn.Module):
         R_tt = self.time_rnn(R_t)[0].view(batch_size, Fd, -1, 2 * self.hidden_size).permute(0, 3, 2, 1) # RNN processing
         R_ttt = self.time_conv_t(R_tt) + R_fff
 
-        # Time-Frequency self-attention
+        # Time-Frequency self-attention (coming...)
 
-        A_Gs = self.attention(R_ttt) + R_ttt
+        A_Gs = R_ttt
 
         # Reconstruction
 
@@ -145,3 +191,35 @@ class RTFSBlock(nn.Module):
         A_0 = self.channel_up(A_ss) # channel upsampling
 
         return A_0
+    
+    def __str__(self):
+        """
+        Model prints with the number of parameters.
+        """
+        all_parameters = sum([p.numel() for p in self.parameters()])
+        trainable_parameters = sum(
+            [p.numel() for p in self.parameters() if p.requires_grad]
+        )
+
+        result_info = super().__str__()
+        result_info = result_info + f"\nAll parameters: {all_parameters}"
+        result_info = result_info + f"\nTrainable parameters: {trainable_parameters}"
+
+        return result_info
+    
+
+
+batch_size = 3
+Ca = 256
+Ta = 125
+F_dim = 1030
+
+
+test_tensor = torch.rand((batch_size, Ca, Ta, F_dim))
+print(test_tensor.shape)
+
+model = RTFSBlock()
+print(model)
+
+out = model(test_tensor)
+print(out.shape)

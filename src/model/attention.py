@@ -2,113 +2,29 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as functional
 
-from src.model.convolutions import FeedForwardNetwork
-
-
-class TransposedLayerNorm(nn.Module):
-    """
-    Layer norm along 1st and 3rd dimension
-    """
-
-    def __init__(self, input_shape):
-        super(TransposedLayerNorm, self).__init__()
-
-        self.norm = nn.LayerNorm(input_shape)
-
-    def forward(self, x):
-        return self.norm(x.transpose(1, 2)).transpose(1, 2)
-    
-
-class PositionalEncoding(nn.Module):
-    """
-    Positional encoding for multihead attetion
-    """
-
-    def __init__(self, in_channels, max_length):
-        super().__init__()
-
-        pe = torch.zeros(max_length, in_channels)
-        position = torch.arange(0, max_length).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, in_channels, 2).float() * -(torch.log(torch.tensor(max_length).float()) / in_channels))
-        pe[:, 0::2] = torch.sin(position.float() * div_term)
-        pe[:, 1::2] = torch.cos(position.float() * div_term)
-        pe = pe.unsqueeze(0)
-
-        self.pe = pe
-
-    def forward(self, x):
-        x = x + self.pe[:, : x.size(1)]
-        return x  
-
-
-class Attention(nn.Module):
-    """
-    Multihead attention for video processing block
-    """
-
-    def __init__(self, in_channels, n_head=8, dropout=0.1, max_length=10000):
-        """
-        Args:
-            in_channels - number of input channels
-            n_head - number of heada for attention
-            dropout - dropout rate
-            max_length - length for positional encoding
-        """
-        super(Attention, self).__init__()
-
-        self.positional_encoding = PositionalEncoding(in_channels, max_length)
-        self.norm1 = nn.LayerNorm(in_channels)
-        self.attention = nn.MultiheadAttention(in_channels, n_head, dropout)
-        self.dropout = nn.Dropout(dropout)
-        self.norm2 = nn.LayerNorm(in_channels)
-
-        self.ffn = FeedForwardNetwork(5, in_channels, in_channels * 2)
-
-    def forward(self, x):
-        """
-        Attention forward method.
-
-        Args:
-            x (Tensor): input tensor of shape (B, D, T)
-        Returns:
-            tensor of same shape as input
-        """
-        x = x.transpose(1, 2)
-        residual = x
-
-        x = self.norm1(x)
-        x = self.positional_encoding(x)  
-
-        x = self.attention(x, x, x)[0]
-        x = self.norm2(x + self.dropout(x))
-
-        x = x + residual
-        x = x.transpose(1, 2)
-
-        x = x + self.ffn(x)
-
-        return x
-
-
-class MultiHeadSelfAttention(nn.Module):
-    """
-    Time-Frequency - domain self-attention
-    """
-
-    def __init__(self, in_channels, hidden_channels, n_freqs, n_head = 4):
-        """
-        Args:
-            in_channels - number of input channels
-            hidden_channels - number of hidden channels
-            n_freqs - number of frequencies
-            n_head - number of heads
-        """
-        super(MultiHeadSelfAttention, self).__init__()
-
-        self.in_channels = in_channels
+class MultiHeadSelfAttention2D(nn.Module):
+    def __init__(
+        self,
+        in_chan: int,
+        n_freqs: int,
+        n_head: int = 4,
+        hid_chan: int = 4,
+        act_type: str = "PReLU",
+        norm_type: str = "LayerNormalization4D",
+        dim: int = 3,
+        *args,
+        **kwargs,
+    ):
+        super(MultiHeadSelfAttention2D, self).__init__()
+        self.in_chan = in_chan
         self.n_freqs = n_freqs
         self.n_head = n_head
-        self.hidden_channels = hidden_channels
+        self.hid_chan = hid_chan
+        self.act_type = act_type
+        self.norm_type = norm_type
+        self.dim = dim
+
+        assert self.in_chan % self.n_head == 0
 
         self.Queries = nn.ModuleList()
         self.Keys = nn.ModuleList()
@@ -116,76 +32,87 @@ class MultiHeadSelfAttention(nn.Module):
 
         for _ in range(self.n_head):
             self.Queries.append(
-                nn.Sequential(
-                    nn.Conv2d(
-                        in_channels,
-                        hidden_channels,
-                        (1, 1),
-                        stride=(1, 1)
-                    ),
-                    nn.PReLU(),
-                    TransposedLayerNorm([hidden_channels, n_freqs])
+                conv_layers.ConvActNorm(
+                    in_chan=self.in_chan,
+                    out_chan=self.hid_chan,
+                    kernel_size=1,
+                    act_type=self.act_type,
+                    norm_type=self.norm_type,
+                    n_freqs=self.n_freqs,
+                    is2d=True,
                 )
             )
             self.Keys.append(
-                nn.Sequential(
-                    nn.Conv2d(
-                        in_channels,
-                        hidden_channels,
-                        (1, 1),
-                        stride=(1, 1)
-                    ),
-                    nn.PReLU(),
-                    TransposedLayerNorm([hidden_channels, n_freqs])
+                conv_layers.ConvActNorm(
+                    in_chan=self.in_chan,
+                    out_chan=self.hid_chan,
+                    kernel_size=1,
+                    act_type=self.act_type,
+                    norm_type=self.norm_type,
+                    n_freqs=self.n_freqs,
+                    is2d=True,
                 )
             )
             self.Values.append(
-                nn.Sequential(
-                    nn.Conv2d(
-                        in_channels,
-                        in_channels // n_head,
-                        (1, 1),
-                        stride=(1, 1)
-                    ),
-                    nn.PReLU(),
-                    TransposedLayerNorm([in_channels // n_head, n_freqs])
+                conv_layers.ConvActNorm(
+                    in_chan=self.in_chan,
+                    out_chan=self.in_chan // self.n_head,
+                    kernel_size=1,
+                    act_type=self.act_type,
+                    norm_type=self.norm_type,
+                    n_freqs=self.n_freqs,
+                    is2d=True,
                 )
             )
 
-        self.after_attention = nn.Sequential(
-            nn.Conv2d(
-                in_channels,
-                in_channels,
-                (1, 1),
-                stride=(1, 1)
-            ),
-            nn.PReLU(),
-            TransposedLayerNorm([in_channels, n_freqs])
+        self.attn_concat_proj = conv_layers.ConvActNorm(
+            in_chan=self.in_chan,
+            out_chan=self.in_chan,
+            kernel_size=1,
+            act_type=self.act_type,
+            norm_type=self.norm_type,
+            n_freqs=self.n_freqs,
+            is2d=True,
         )
 
-    def forward(self, x):
-        """
-        Attention forward method.
+    def forward(self, x: torch.Tensor):
+        if self.dim == 4:
+            x = x.transpose(-2, -1).contiguous()
 
-        Args:
-            x (Tensor): input tensor.
-        Returns:
-            tensor of same shape as input
-        """   
-        batch_size, _, Td, Fd = x.size()
+        batch_size, _, time, freq = x.size()
         residual = x
 
-        head_results = []
-        for i in range(self.n_head):
-            Q = self.Queries[i](x).transpose(1, 2).reshape(batch_size, Td, Fd * self.hidden_channels)
-            K = self.Keys[i](x).transpose(1, 2).reshape(batch_size, Td, Fd * self.hidden_channels)
-            V = self.Values[i](x).transpose(1, 2).reshape(batch_size, Td, Fd * (self.in_channels // self.n_head))
+        all_Q = [q(x) for q in self.Queries]  # [B, E, T, F]
+        all_K = [k(x) for k in self.Keys]  # [B, E, T, F]
+        all_V = [v(x) for v in self.Values]  # [B, C/n_head, T, F]
 
-            attention = functional.softmax(Q @ K.transpose(1, 2) / (self.n_freqs * self.hidden_channels)**0.5) @ V
+        Q = torch.cat(all_Q, dim=0)  # [B', E, T, F]    B' = B*n_head
+        K = torch.cat(all_K, dim=0)  # [B', E, T, F]
+        V = torch.cat(all_V, dim=0)  # [B', C/n_head, T, F]
 
-            head_results.append(attention)
+        Q = Q.transpose(1, 2).flatten(start_dim=2)  # [B', T, E*F]
+        K = K.transpose(1, 2).flatten(start_dim=2)  # [B', T, E*F]
+        V = V.transpose(1, 2)  # [B', T, C/n_head, F]
+        old_shape = V.shape
+        V = V.flatten(start_dim=2)  # [B', T, C*F/n_head]
+        emb_dim = Q.shape[-1]  # C*F/n_head
 
-        result = torch.cat(head_results, dim=-1).reshape(batch_size, Td, self.in_channels, Fd).transpose(1, 2)
-        return self.after_attention(result) + residual
+        attn_mat = torch.matmul(Q, K.transpose(1, 2)) / (emb_dim**0.5)  # [B', T, T]
+        attn_mat = functional.softmax(attn_mat, dim=2)  # [B', T, T]
+        V = torch.matmul(attn_mat, V)  # [B', T, C*F/n_head]
+        V = V.reshape(old_shape)  # [B', T, C/n_head, F]
+        V = V.transpose(1, 2)  # [B', C/n_head, T, F]
+        emb_dim = V.shape[1]  # C/n_head
 
-    
+        x = V.view([self.n_head, batch_size, emb_dim, time, freq])  # [n_head, B, C/n_head, T, F]
+        x = x.transpose(0, 1).contiguous()  # [B, n_head, C/n_head, T, F]
+
+        x = x.view([batch_size, self.n_head * emb_dim, time, freq])  # [B, C, T, F]
+        x = self.attn_concat_proj(x)  # [B, C, T, F]
+
+        x = x + residual
+
+        if self.dim == 4:
+            x = x.transpose(-2, -1).contiguous()
+
+        return x
