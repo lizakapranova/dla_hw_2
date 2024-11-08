@@ -1,8 +1,23 @@
 from torch import nn
+from torch import tensor
+import torch
+from torch.nn import Sequential
 import torch.nn.functional as F
 
-from src.model.attention import MultiHeadSelfAttention
-from src.model.fusion import TF_AR
+from attention import MultiHeadSelfAttention
+from fusion import TF_AR
+
+
+class SRU(nn.Module): # TODO ?
+    """
+    Simple Recurrent Unit
+    """
+
+    def __init__(self):
+        pass
+
+    def forward(self, x):
+        return x
 
 
 class RTFSBlock(nn.Module):
@@ -65,18 +80,16 @@ class RTFSBlock(nn.Module):
         self.attention = MultiHeadSelfAttention(D, n_head, n_freqs // 2**q)
 
 
-    def forward(self, x, residual=None, **batch):
+    def forward(self, x, **batch):
         """
         Block forward method.
 
         Args:
-            x (Tensor): input tensor of shape (B, Ca, T_dim, F_dim)
+            x (Tensor): input tensor.
         Returns:
             tensor of same shape as input
         """      
         for _ in range(self.layers):
-            if residual is not None:
-                x = x + residual
             x = self.process_one_iteration(x)
 
         return x
@@ -94,29 +107,30 @@ class RTFSBlock(nn.Module):
         for conv in self.convs:
             out = conv(out)
             A.append(F.adaptive_avg_pool2d(out, output_size=output_size))
-            A_G += A[-1]
+            A_G += F.adaptive_avg_pool2d(out, output_size=output_size)
 
         # Dual-Path architecture
 
         # Frequency dimension processing
         batch_size, channels, Td, Fd = A_G.shape
-        R_f = A_G.permute(0, 2, 1, 3).reshape(batch_size * Td, channels, Fd, 1) # needs for unfold
+        R_f = A_G.permute(0, 2, 1, 3).contiguous().view(batch_size * Td, channels, Fd, 1)
         R_f = self.frequency_unfold(R_f)
         R_f = R_f.permute(0, 2, 1)
         R_ff = self.frequency_rnn(R_f)[0].view(batch_size, Td, -1, 2 * self.hidden_size).permute(0, 3, 1, 2) # RNN processing
         R_fff = self.frequency_conv_t(R_ff) + A_G
 
         # Time dimension processing
-        R_t = R_fff.permute(0, 3, 1, 2).reshape(batch_size * Fd, channels, Td, 1) # needs for unfold
+        R_t = R_fff.permute(0, 3, 1, 2).contiguous().view(batch_size * Fd, channels, Td, 1)
         R_t = self.time_unfold(R_t)
         R_t = R_t.permute(0, 2, 1)
+
+
         R_tt = self.time_rnn(R_t)[0].view(batch_size, Fd, -1, 2 * self.hidden_size).permute(0, 3, 2, 1) # RNN processing
         R_ttt = self.time_conv_t(R_tt) + R_fff
 
         # Time-Frequency self-attention
 
         A_Gs = self.attention(R_ttt) + R_ttt
-        # A_Gs = R_ttt
 
         # Reconstruction
 
@@ -131,3 +145,20 @@ class RTFSBlock(nn.Module):
         A_0 = self.channel_up(A_ss) # channel upsampling
 
         return A_0
+    
+
+### Testing
+
+batch_size = 3
+Ca = 256
+Ta = 125
+F_dim = 1030
+
+
+test_tensor = torch.rand((batch_size, Ca, Ta, F_dim))
+print(test_tensor.shape)
+
+model = RTFSBlock(n_freqs=F_dim)
+
+out = model(test_tensor)
+print(out.shape)

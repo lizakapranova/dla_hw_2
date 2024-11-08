@@ -1,26 +1,26 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from src.model.fusion import TF_AR
-from src.model.attention import Attention
+from fusion import TF_AR
 
 
 class VP(nn.Module):
     """
     Video processing block
     """
-    def __init__(self, q=2, Cv=256, D=64):
+    def __init__(self, q=2, Ca=256, D=64):
         """
         Args:
             q - number of compression steps
-            Cv - number of input channels
+            Ca - number of input channels
             D - compressed number of channels
         """
         super(VP, self).__init__()
 
         self.q = q
-        self.channel_down = nn.Conv1d(Cv, D, 1)
-        self.channel_up = nn.Conv1d(D, Cv, 1)
+        self.channel_down = nn.Conv1d(Ca, D, 1)
+        self.channel_up = nn.Conv1d(D, Ca, 1)
 
         self.convs = nn.ModuleList()
         self.reconstruction1 = nn.ModuleList()
@@ -31,14 +31,12 @@ class VP(nn.Module):
             if (_ < q - 1):
                 self.reconstruction2.append(TF_AR(D, is2d=False))
 
-        self.attention = Attention(D)
-
     def forward(self, x):
         """
         Block forward method.
 
         Args:
-            x (Tensor): input tensor of shape (B, Cv, T_dim)
+            x (Tensor): input tensor of shape (B, Ca, T_dim)
         Returns:
             tensor of same shape as input
         """
@@ -56,9 +54,8 @@ class VP(nn.Module):
             V.append(F.adaptive_avg_pool1d(out, output_size=output_size))
             V_G += F.adaptive_avg_pool1d(out, output_size=output_size)
 
-        # attention
-        V_Gs = self.attention(V_G) + V_G
-        # V_Gs = V_G
+        # attention (not yet)
+        V_Gs = V_G
 
         V_s = []
         for i in range(self.q): # 1st phase of reconstruction
