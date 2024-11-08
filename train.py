@@ -70,8 +70,6 @@ def main(config):
         skip_oom=config.trainer.get("skip_oom", True),
     )
 
-    # test commit line
-
     trainer.train()
 
 
