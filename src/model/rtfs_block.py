@@ -5,6 +5,7 @@ from torch.nn import Sequential
 import torch.nn.functional as F
 
 from attention import MultiHeadSelfAttention
+from fusion import TF_AR
 
 
 class SRU(nn.Module): # TODO ?
@@ -17,56 +18,6 @@ class SRU(nn.Module): # TODO ?
 
     def forward(self, x):
         return x
-
-
-class ConvNorm(nn.Module):
-    """
-    Depth-wise convolution with group layer norm
-    """
-
-    def __init__(self, kernel, stride, padding, in_channels, out_channels):
-        """
-        Args:
-            args for Conv2d
-        """
-        super().__init__()
-
-        self.conv = nn.Conv2d(
-            in_channels,
-            out_channels,
-            kernel,
-            stride=stride,
-            padding=padding,
-            groups=in_channels
-        )
-        self.norm = nn.GroupNorm(1, out_channels)
-
-    def forward(self, x):
-        return self.norm(self.conv(x))
-
-
-class TF_AR(nn.Module):
-    """
-    Temporal-Frequency Attention Reconstruction
-    """
-
-    def __init__(self, channels):
-        """
-        Args:
-            channels - number of input and output channels
-        """
-        super().__init__()
-
-        self.W1 = ConvNorm((4, 4), (1, 1), "same", channels, channels) # warning ignore?
-        self.W2 = ConvNorm((4, 4), (1, 1), "same", channels, channels)
-        self.W3 = ConvNorm((4, 4), (1, 1), "same", channels, channels)
-
-    def forward(self, m, n): # shape of n < shape of m     
-        x1 = nn.functional.interpolate(nn.functional.sigmoid(self.W1(n)), size=m.shape[-2:], mode="nearest")
-        x2 = self.W2(m)
-        x3 = nn.functional.interpolate(self.W3(n), size=m.shape[-2:], mode="nearest")
-
-        return x1 * x2 + x3
 
 
 class RTFSBlock(nn.Module):
@@ -134,7 +85,7 @@ class RTFSBlock(nn.Module):
         Block forward method.
 
         Args:
-            x (Tensor): input tensor.
+            x (Tensor): input tensor of shape (B, Ca, T_dim, F_dim)
         Returns:
             tensor of same shape as input
         """      
