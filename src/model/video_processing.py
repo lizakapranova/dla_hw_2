@@ -2,14 +2,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from fusion import TF_AR
+from src.model.fusion import TF_AR
+from src.model.attention import Attention
 
 
 class VP(nn.Module):
     """
     Video processing block
     """
-    def __init__(self, q=2, Ca=256, D=64):
+    def __init__(self, q=2, Cv=256, D=64):
         """
         Args:
             q - number of compression steps
@@ -19,8 +20,8 @@ class VP(nn.Module):
         super(VP, self).__init__()
 
         self.q = q
-        self.channel_down = nn.Conv1d(Ca, D, 1)
-        self.channel_up = nn.Conv1d(D, Ca, 1)
+        self.channel_down = nn.Conv1d(Cv, D, 1)
+        self.channel_up = nn.Conv1d(D, Cv, 1)
 
         self.convs = nn.ModuleList()
         self.reconstruction1 = nn.ModuleList()
@@ -30,6 +31,8 @@ class VP(nn.Module):
             self.reconstruction1.append(TF_AR(D, is2d=False))
             if (_ < q - 1):
                 self.reconstruction2.append(TF_AR(D, is2d=False))
+
+        self.attention = Attention(D)
 
     def forward(self, x):
         """
@@ -54,8 +57,8 @@ class VP(nn.Module):
             V.append(F.adaptive_avg_pool1d(out, output_size=output_size))
             V_G += F.adaptive_avg_pool1d(out, output_size=output_size)
 
-        # attention (not yet)
-        V_Gs = V_G
+        # attention
+        V_Gs = self.attention(V_G) + V_G
 
         V_s = []
         for i in range(self.q): # 1st phase of reconstruction

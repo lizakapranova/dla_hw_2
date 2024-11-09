@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as functional
 
+from src.model.convolutions import FeedForwardNetwork
+
 
 class TransposedLayerNorm(nn.Module):
     """
@@ -15,6 +17,77 @@ class TransposedLayerNorm(nn.Module):
 
     def forward(self, x):
         return self.norm(x.transpose(1, 2)).transpose(1, 2)
+    
+
+class PositionalEncoding(nn.Module):
+    """
+    Positional encoding for multihead attetion
+    """
+
+    def __init__(self, in_channels, max_length):
+        super().__init__()
+
+        pe = torch.zeros(max_length, in_channels)
+        position = torch.arange(0, max_length).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, in_channels, 2).float() * -(torch.log(torch.tensor(max_length).float()) / in_channels))
+        pe[:, 0::2] = torch.sin(position.float() * div_term)
+        pe[:, 1::2] = torch.cos(position.float() * div_term)
+        pe = pe.unsqueeze(0)
+
+        self.pe = pe
+
+    def forward(self, x):
+        x = x + self.pe[:, : x.size(1)]
+        return x  
+
+
+class Attention(nn.Module):
+    """
+    Multihead attention for video processing block
+    """
+
+    def __init__(self, in_channels, n_head=8, dropout=0.1, max_length=10000):
+        """
+        Args:
+            in_channels - number of input channels
+            n_head - number of heada for attention
+            dropout - dropout rate
+            max_length - length for positional encoding
+        """
+        super(Attention, self).__init__()
+
+        self.positional_encoding = PositionalEncoding(in_channels, max_length)
+        self.norm1 = nn.LayerNorm(in_channels)
+        self.attention = nn.MultiheadAttention(in_channels, n_head, dropout)
+        self.dropout = nn.Dropout(dropout)
+        self.norm2 = nn.LayerNorm(in_channels)
+
+        self.ffn = FeedForwardNetwork(5, in_channels, in_channels * 2)
+
+    def forward(self, x):
+        """
+        Attention forward method.
+
+        Args:
+            x (Tensor): input tensor of shape (B, D, T)
+        Returns:
+            tensor of same shape as input
+        """
+        x = x.transpose(1, 2)
+        residual = x
+
+        x = self.norm1(x)
+        x = self.positional_encoding(x)  
+
+        x = self.attention(x, x, x)[0]
+        x = self.norm2(x + self.dropout(x))
+
+        x = x + residual
+        x = x.transpose(1, 2)
+
+        x = x + self.ffn(x)
+
+        return x
 
 
 class MultiHeadSelfAttention(nn.Module):
@@ -114,4 +187,5 @@ class MultiHeadSelfAttention(nn.Module):
 
         result = torch.cat(head_results, dim=-1).reshape(batch_size, Td, self.in_channels, Fd).transpose(1, 2)
         return self.after_attention(result) + residual
+
     

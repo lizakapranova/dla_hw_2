@@ -4,8 +4,8 @@ import torch
 from torch.nn import Sequential
 import torch.nn.functional as F
 
-from attention import MultiHeadSelfAttention
-from fusion import TF_AR
+from src.model.attention import MultiHeadSelfAttention
+from src.model.fusion import TF_AR
 
 
 class SRU(nn.Module): # TODO ?
@@ -145,20 +145,3 @@ class RTFSBlock(nn.Module):
         A_0 = self.channel_up(A_ss) # channel upsampling
 
         return A_0
-    
-
-### Testing
-
-batch_size = 3
-Ca = 256
-Ta = 125
-F_dim = 1030
-
-
-test_tensor = torch.rand((batch_size, Ca, Ta, F_dim))
-print(test_tensor.shape)
-
-model = RTFSBlock(n_freqs=F_dim)
-
-out = model(test_tensor)
-print(out.shape)
