@@ -1,6 +1,6 @@
 import torch.nn as nn
 
-from convolutions import ConvNorm
+from src.model.convolutions import ConvNorm
 
 
 class TF_AR(nn.Module):
