@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as functional
 
-from convolutions import ConvNorm
+from src.model.convolutions import ConvNorm
 
 
 class TF_AR(nn.Module):
