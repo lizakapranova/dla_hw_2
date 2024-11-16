@@ -1,4 +1,3 @@
-import torch
 from torch import nn
 import torch.nn.functional as F
 
@@ -14,7 +13,7 @@ class ConvNorm(nn.Module):
             args for Conv2d
         """
         super().__init__()
-        if groups is None:
+        if groups is None: # depth-wise
             groups = in_channels
         if is2d:
             self.conv = nn.Conv2d(
@@ -58,7 +57,7 @@ class FeedForwardNetwork(nn.Module): # biases?
         self.conv1 = ConvNorm(1, 1, 0, in_channels, hidden_channels, groups=1, is2d=False)
         self.conv2 = nn.Conv1d(
             hidden_channels, hidden_channels, kernel, 1, 2, groups=hidden_channels
-        )
+        ) # depth-wise
         self.conv3 = ConvNorm(1, 1, 0, hidden_channels, in_channels, groups=1, is2d=False)
         self.dropout = nn.Dropout(dropout)
 

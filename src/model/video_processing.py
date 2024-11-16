@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -14,7 +13,7 @@ class VP(nn.Module):
         """
         Args:
             q - number of compression steps
-            Ca - number of input channels
+            Cv - number of input channels
             D - compressed number of channels
         """
         super(VP, self).__init__()
@@ -39,7 +38,7 @@ class VP(nn.Module):
         Block forward method.
 
         Args:
-            x (Tensor): input tensor of shape (B, Ca, T_dim)
+            x (Tensor): input tensor of shape (B, Cv, T_dim)
         Returns:
             tensor of same shape as input
         """
