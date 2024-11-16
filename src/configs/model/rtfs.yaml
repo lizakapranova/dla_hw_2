@@ -1,0 +1,6 @@
+_target_: src.model.RTFSNet
+n_freqs: 511
+Ca: 256
+Cv: 256
+caf_heads: 4
+D: 64

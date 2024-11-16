@@ -21,36 +21,39 @@ class TransposedLayerNorm(nn.Module):
 
 class PositionalEncoding(nn.Module):
     """
-    Positional encoding for multihead attetion
+    Positional encoding for multihead attention
     """
 
     def __init__(self, in_channels, max_length):
         super().__init__()
 
-        pe = torch.zeros(max_length, in_channels)
+        pos = torch.zeros(max_length, in_channels)
         position = torch.arange(0, max_length).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, in_channels, 2).float() * -(torch.log(torch.tensor(max_length).float()) / in_channels))
-        pe[:, 0::2] = torch.sin(position.float() * div_term)
-        pe[:, 1::2] = torch.cos(position.float() * div_term)
-        pe = pe.unsqueeze(0)
+        div_term = torch.exp(torch.arange(0, in_channels, 2) * -(torch.log(torch.tensor(max_length)) / in_channels))
+        pos[:, 0::2] = torch.sin(position * div_term)
+        pos[:, 1::2] = torch.cos(position * div_term)
+        pos = pos.unsqueeze(0)
 
-        self.pe = pe
+        self.pos = pos
 
     def forward(self, x):
-        x = x + self.pe[:, : x.size(1)]
+        """
+        (batch_size, X, channels) shape expected
+        """
+        x = x + self.pos[:, :x.size(1)]
         return x  
 
 
 class Attention(nn.Module):
     """
-    Multihead attention for video processing block
+    Multihead attention with FFN for video processing block
     """
 
     def __init__(self, in_channels, n_head=8, dropout=0.1, max_length=10000):
         """
         Args:
             in_channels - number of input channels
-            n_head - number of heada for attention
+            n_head - number of heads for attention
             dropout - dropout rate
             max_length - length for positional encoding
         """
@@ -58,7 +61,7 @@ class Attention(nn.Module):
 
         self.positional_encoding = PositionalEncoding(in_channels, max_length)
         self.norm1 = nn.LayerNorm(in_channels)
-        self.attention = nn.MultiheadAttention(in_channels, n_head, dropout)
+        self.attention = nn.MultiheadAttention(in_channels, n_head, dropout, batch_first=True)
         self.dropout = nn.Dropout(dropout)
         self.norm2 = nn.LayerNorm(in_channels)
 
@@ -73,12 +76,10 @@ class Attention(nn.Module):
         Returns:
             tensor of same shape as input
         """
-        x = x.transpose(1, 2)
+        x = x.transpose(1, 2) # needs for norms, positional encoding and attention
         residual = x
 
-        x = self.norm1(x)
-        x = self.positional_encoding(x)  
-
+        x = self.positional_encoding(self.norm1(x))  
         x = self.attention(x, x, x)[0]
         x = self.norm2(x + self.dropout(x))
 
@@ -92,7 +93,7 @@ class Attention(nn.Module):
 
 class MultiHeadSelfAttention(nn.Module):
     """
-    Time-Frequency - domain self-attention
+    Time-Frequency - domain self-attention (for RTFS-block)
     """
 
     def __init__(self, in_channels, hidden_channels, n_freqs, n_head = 4):
@@ -110,12 +111,12 @@ class MultiHeadSelfAttention(nn.Module):
         self.n_head = n_head
         self.hidden_channels = hidden_channels
 
-        self.Queries = nn.ModuleList()
-        self.Keys = nn.ModuleList()
-        self.Values = nn.ModuleList()
+        self.queries = nn.ModuleList()
+        self.keys = nn.ModuleList()
+        self.values = nn.ModuleList()
 
         for _ in range(self.n_head):
-            self.Queries.append(
+            self.queries.append(
                 nn.Sequential(
                     nn.Conv2d(
                         in_channels,
@@ -127,7 +128,7 @@ class MultiHeadSelfAttention(nn.Module):
                     TransposedLayerNorm([hidden_channels, n_freqs])
                 )
             )
-            self.Keys.append(
+            self.keys.append(
                 nn.Sequential(
                     nn.Conv2d(
                         in_channels,
@@ -139,7 +140,7 @@ class MultiHeadSelfAttention(nn.Module):
                     TransposedLayerNorm([hidden_channels, n_freqs])
                 )
             )
-            self.Values.append(
+            self.values.append(
                 nn.Sequential(
                     nn.Conv2d(
                         in_channels,
@@ -177,15 +178,13 @@ class MultiHeadSelfAttention(nn.Module):
 
         head_results = []
         for i in range(self.n_head):
-            Q = self.Queries[i](x).transpose(1, 2).reshape(batch_size, Td, Fd * self.hidden_channels)
-            K = self.Keys[i](x).transpose(1, 2).reshape(batch_size, Td, Fd * self.hidden_channels)
-            V = self.Values[i](x).transpose(1, 2).reshape(batch_size, Td, Fd * (self.in_channels // self.n_head))
-
-            attention = functional.softmax(Q @ K.transpose(1, 2) / (self.n_freqs * self.hidden_channels)**0.5) @ V
+            Q = self.queries[i](x).transpose(1, 2).reshape(batch_size, Td, Fd * self.hidden_channels)
+            K = self.keys[i](x).transpose(1, 2).reshape(batch_size, Td, Fd * self.hidden_channels)
+            V = self.values[i](x).transpose(1, 2).reshape(batch_size, Td, Fd * (self.in_channels // self.n_head))
+            attention = functional.softmax(Q @ K.transpose(1, 2) / (self.n_freqs * self.hidden_channels)**0.5, dim=-1) @ V
 
             head_results.append(attention)
 
         result = torch.cat(head_results, dim=-1).reshape(batch_size, Td, self.in_channels, Fd).transpose(1, 2)
         return self.after_attention(result) + residual
-
-    
+   
