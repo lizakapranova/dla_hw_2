@@ -28,7 +28,7 @@ class RTFSNet(nn.Module):
         for param in self.video_processing.parameters():
             param.requires_grad = False
 
-        self.caf = CAFBlock(ConvParameters(Cv, Ca, 1), ConvParameters(Ca, Ca, 1), caf_heads) # params ok?
+        self.caf = CAFBlock(ConvParameters(Cv, Ca, 3), ConvParameters(Ca, Ca, 1), caf_heads) # params ok?
 
         self.rtfs_block = RTFSBlock(Ca=Ca, D=D, n_freqs=n_freqs, layers=6)
 
