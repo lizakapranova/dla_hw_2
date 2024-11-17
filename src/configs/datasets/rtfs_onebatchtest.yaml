@@ -1,0 +1,9 @@
+train:
+  _target_: src.datasets.CustomDirDataset
+  dataset_zip_path: dla_dataset.zip
+  limit: 1
+
+val:
+  _target_: src.datasets.CustomDirDataset
+  dataset_zip_path: dla_dataset.zip
+  limit: 1
