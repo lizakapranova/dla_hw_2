@@ -1,28 +1,31 @@
 defaults:
-  - model: baseline
+  - model: rtfs
   - writer: wandb
-  - metrics: example
-  - datasets: example
+  - metrics: train_eval
+  - datasets: rtfs_onebatchtest
   - dataloader: example
-  - transforms: example
+  - transforms: example_only_batch
   - _self_
 optimizer:
   _target_: torch.optim.Adam
-  lr: 3e-4
+  lr: 3e-3
 lr_scheduler:
-  _target_: torch.optim.lr_scheduler.StepLR
-  gamma: 0.9
-  step_size: ${trainer.epoch_len}
+  _target_: torch.optim.lr_scheduler.OneCycleLR
+  max_lr: 6e-3
+  pct_start: 0.1
+  steps_per_epoch: ${trainer.epoch_len}
+  epochs: ${trainer.n_epochs}
+  anneal_strategy: cos
 loss_function:
-  _target_: src.loss.ExampleLoss
+  _target_: src.loss.SISNRLoss
 trainer:
-  log_step: 50
-  n_epochs: 100
-  epoch_len: 500
-  device_tensors: ["data_object", "labels"] # which tensors should be on device (ex. GPU)
+  log_step: 5
+  n_epochs: 500
+  epoch_len: 1
+  device_tensors: ["mix_audio", "speaker_audio"] # which tensors should be on device (ex. GPU)
   resume_from: null # null or path to the checkpoint dir with *.pth and config.yaml
   device: auto # device name or "auto"
-  override: False # if True, will override the previous run with the same name
+  override: True # if True, will override the previous run with the same name
   monitor: "max test_MulticlassAccuracy" # "off" or "max/min metric_name", i.e. our goal is to maximize/minimize metric
   save_period: 5 # checkpoint each save_period epochs in addition to the best epoch
   early_stop: ${trainer.n_epochs} # epochs for early stopping

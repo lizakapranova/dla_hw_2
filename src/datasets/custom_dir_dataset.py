@@ -10,7 +10,7 @@ from src.datasets.base_dataset import BaseDataset
 from src.utils.io_utils import ROOT_PATH, read_json, write_json
 from torch.utils.data import Dataset
 
-def find_speaker_audio_or_video(speaker_id, needed_dir_path):
+def find_video(speaker_id, needed_dir_path):
     for candidate in os.listdir(needed_dir_path):
         if candidate.startswith(speaker_id):
             return needed_dir_path / candidate
@@ -21,7 +21,7 @@ class CustomDirDataset(BaseDataset):
         self._data_dir = ROOT_PATH / 'data'
         if not self._data_dir.exists():
             self._data_dir.mkdir(exist_ok=True, parents=True)
-            self.load_dataset(dataset_zip_path)
+            self.load_dataset(ROOT_PATH / dataset_zip_path) # relative path
 
         index = self._get_or_create_index(part)
         super().__init__(index, *args, **kwargs)
@@ -43,22 +43,16 @@ class CustomDirDataset(BaseDataset):
             s1 = mix_audio[:mix_audio.find('_')]
             s2 = mix_audio[mix_audio.find('_') + 1: mix_audio.find('.')]
 
-            s1_audio = find_speaker_audio_or_video(mix_audio, audio_path / 's1')
-            s2_audio = find_speaker_audio_or_video(mix_audio, audio_path / 's2')
-
-            s1_video = find_speaker_audio_or_video(s1, video_path)
-            s2_video = find_speaker_audio_or_video(s2, video_path)
-
             index.extend([
                 {
                     'mix_path': str(audio_path / 'mix' / mix_audio),
-                    'audio_path': str(s1_audio),
-                    'video_path': str(s1_video)
+                    'audio_path': str(audio_path / 's1' / mix_audio),
+                    'video_path': str(video_path / f"{s1}.npz")
                 },
                 {
                     'mix_path': str(audio_path / 'mix' / mix_audio),
-                    'audio_path': str(s2_audio),
-                    'video_path': str(s2_video)
+                    'audio_path': str(audio_path / 's2' / mix_audio),
+                    'video_path': str(video_path / f"{s2}.npz")
                 }
             ])
 

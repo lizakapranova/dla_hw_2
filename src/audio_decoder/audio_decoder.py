@@ -10,7 +10,7 @@ class AudioDecoder(nn.Module):
                                             out_channels=2,
                                             kernel_size=kernel_size)
         
-    def forward(self, encoded_audio):
+    def forward(self, encoded_audio, length):
         alpha = self.deconv2d(encoded_audio)
         
         real_part = alpha[:, 0, :, :]
@@ -22,6 +22,6 @@ class AudioDecoder(nn.Module):
                           n_fft=1024, 
                           onesided=True, 
                           center=False,
-                          length=32000)
+                          length=length)
         
         return final_wav

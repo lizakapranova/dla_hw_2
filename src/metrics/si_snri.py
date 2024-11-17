@@ -1,11 +1,16 @@
+import torch
 from torch import Tensor
 from torchmetrics.audio import ScaleInvariantSignalNoiseRatio
+from src.metrics.base_metric import BaseMetric
 
 
-class SiSNRi:
-    def __init__(self):
-        self.si_snri = ScaleInvariantSignalNoiseRatio()
+class SiSNRi(BaseMetric):
+    def __init__(self, device, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-    def __call__(self, preds: Tensor, target: Tensor) -> float:
-        si_snri_result = self.si_snri(preds, target)
-        return si_snri_result.item()
+        if device == "auto":
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.si_snr = ScaleInvariantSignalNoiseRatio().to(device)
+
+    def __call__(self, predicted_audio: Tensor, speaker_audio: Tensor, mix_audio: Tensor, **kwargs) -> float:
+        return self.si_snr(predicted_audio, speaker_audio) - self.si_snr(mix_audio, speaker_audio)

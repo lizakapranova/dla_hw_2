@@ -36,7 +36,7 @@ class RTFSNet(nn.Module):
 
         self.audio_decoder = AudioDecoder(output_channels=256)
 
-    def forward(self, audio_input, video_input, **batch):
+    def forward(self, mix_audio, video, **batch):
         """
         RTFS-net forward method.
 
@@ -46,10 +46,11 @@ class RTFSNet(nn.Module):
         Returns:
             tensor of shape (B, T_a) - predicted audio
         """
+        audio_input = mix_audio
         batch_size = audio_input.size(0)
 
         audio_encoded = self.audio_encoder(audio_input).transpose(-1, -2)
-        video_encoded = torch.randn(batch_size, self.Cv, 100) # fix this
+        video_encoded = torch.zeros(batch_size, self.Cv, 100) # fix this
 
         audio = self.audio_processing(audio_encoded)
 
@@ -61,9 +62,9 @@ class RTFSNet(nn.Module):
 
         x = self.s3(audio_encoded, x)
 
-        x = self.audio_decoder(x.transpose(-1, -2))
+        x = self.audio_decoder(x.transpose(-1, -2), audio_input.size(1))
 
-        return x # change to dict
+        return {"predicted_audio": x} # fix tests
     
     def __str__(self):
         """
@@ -74,8 +75,14 @@ class RTFSNet(nn.Module):
             [p.numel() for p in self.parameters() if p.requires_grad]
         )
 
-        result_info = super().__str__()
+        result_info = ""
         result_info = result_info + f"\nAll parameters: {all_parameters}"
         result_info = result_info + f"\nTrainable parameters: {trainable_parameters}"
+
+        for block in ["audio_encoder", "video_encoder", "audio_processing", "video_processing", "caf", "rtfs_block", "s3", "audio_decoder"]:           
+            trainable_parameters = sum(
+                [p.numel() for p in self.__getattr__(block).parameters() if p.requires_grad]
+            )
+            result_info = result_info + f"\nTrainable parameters of {block}: {trainable_parameters}"
 
         return result_info
