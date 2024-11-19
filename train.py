@@ -32,6 +32,7 @@ def main(config):
         device = "cuda" if torch.cuda.is_available() else "cpu"
     else:
         device = config.trainer.device
+    print(torch.cuda.get_device_name())
 
     # setup data_loader instances
     # batch_transforms should be put on device
@@ -48,12 +49,15 @@ def main(config):
     # build optimizer, learning rate scheduler
     trainable_params = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = instantiate(config.optimizer, params=trainable_params)
+
+    epoch_len = config.trainer.get("epoch_len")
+    if epoch_len is None:
+        config.lr_scheduler['steps_per_epoch'] = len(dataloaders['train'])
     lr_scheduler = instantiate(config.lr_scheduler, optimizer=optimizer)
 
     # epoch_len = number of iterations for iteration-based training
     # epoch_len = None or len(dataloader) for epoch-based training
-    epoch_len = config.trainer.get("epoch_len")
-
+    
     trainer = Trainer(
         model=model,
         criterion=loss_function,

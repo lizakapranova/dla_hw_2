@@ -13,6 +13,8 @@ class AudioEncoder(nn.Module):
     def forward(self, wav):
         stft_result = torch.stft(wav,
                                 n_fft=1024,
+                                #hop_length=128,
+                                #win_length=256,
                                 onesided=True,
                                 center=False,
                                 return_complex=True)  
@@ -23,5 +25,4 @@ class AudioEncoder(nn.Module):
         alpha = torch.stack((real_part, imag_part), dim=1) 
         
         encoded_audio = self.conv2d(alpha)
-        
         return encoded_audio

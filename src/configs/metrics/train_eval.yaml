@@ -1,8 +1,6 @@
 device: "auto"
 train: # metrics that are calculated during training
-  - _target_: src.metrics.ExampleMetric
-    metric:
-      _target_: torchmetrics.audio.ScaleInvariantSignalNoiseRatio
+  - _target_: src.metrics.SiSNRi
     device: ${metrics.device}
     name: "Si-SNRi"
 inference: # metrics that are calculated during inference (eval)

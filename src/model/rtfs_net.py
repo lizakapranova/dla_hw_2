@@ -8,13 +8,13 @@ from src.model.video_processing import VP
 from src.model.caf import CAFBlock, ConvParameters
 from src.model.s3 import S3Block
 from src.audio_decoder import AudioDecoder
-
+import time
 
 class RTFSNet(nn.Module):
     """
     RTFS-net
     """
-    def __init__(self, n_freqs, Ca=256, Cv=256, caf_heads=4, D=64): # add more paras and config
+    def __init__(self, n_freqs, Ca=256, Cv=256, caf_heads=4, D=64, rtfs_layers=6): # add more paras and config
         super().__init__()
 
         self.Ca = Ca
@@ -24,17 +24,18 @@ class RTFSNet(nn.Module):
         self.video_encoder = VideoEncoder() # shapes ok?
 
         self.audio_processing = RTFSBlock(Ca=Ca, D=D, n_freqs=n_freqs, layers=1)
-        self.video_processing = VP(Cv=Cv, D=D)
+        # self.video_processing = VP(Cv=Cv, D=D)
+        '''
         for param in self.video_processing.parameters():
-            param.requires_grad = False
+            param.requires_grad = False'''
 
-        self.caf = CAFBlock(ConvParameters(Cv, Ca, 3), ConvParameters(Ca, Ca, 1), caf_heads) # params ok?
+        # self.caf = CAFBlock(ConvParameters(Cv, Ca, 3), ConvParameters(Cv, Cv, 1), caf_heads) # params ok?
 
-        self.rtfs_block = RTFSBlock(Ca=Ca, D=D, n_freqs=n_freqs, layers=6)
+        self.rtfs_block = RTFSBlock(Ca=Ca, D=D, n_freqs=n_freqs, layers=rtfs_layers)
 
         self.s3 = S3Block(Ca)
 
-        self.audio_decoder = AudioDecoder(output_channels=256)
+        self.audio_decoder = AudioDecoder(output_channels=Ca)
 
     def forward(self, mix_audio, video, **batch):
         """
@@ -50,13 +51,13 @@ class RTFSNet(nn.Module):
         batch_size = audio_input.size(0)
 
         audio_encoded = self.audio_encoder(audio_input).transpose(-1, -2)
-        video_encoded = torch.zeros(batch_size, self.Cv, 100) # fix this
+        # video = torch.zeros(batch_size, self.Cv, 100) # fix this
 
-        audio = self.audio_processing(audio_encoded)
+        # audio = self.audio_processing(audio_encoded)
 
-        video = self.video_processing(video_encoded)
-
-        x = self.caf(audio, video)
+        # video = self.video_processing(video_encoded)
+        # x = self.caf(audio, video.cuda())
+        x = audio_encoded
 
         x = self.rtfs_block(x, audio_encoded)
 
