@@ -18,25 +18,29 @@ class CAFBlock(nn.Module):
 
         self.video_conv1 = nn.Conv1d(
             in_channels=video_params.in_channels,
-            out_channels=video_params.out_channels * heads,
+            out_channels=audio_params.in_channels * heads,
             kernel_size=video_params.kernel_size,
+            groups=audio_params.in_channels
         )
         self.video_conv2 = nn.Conv1d(
             in_channels=video_params.in_channels,
-            out_channels=video_params.out_channels,
-            kernel_size=video_params.kernel_size
+            out_channels=audio_params.in_channels,
+            kernel_size=video_params.kernel_size,
+            groups=audio_params.in_channels
         )
 
         self.audio_conv1 = nn.Conv2d(
             in_channels=audio_params.in_channels,
             out_channels=audio_params.out_channels,
-            kernel_size=audio_params.kernel_size
+            kernel_size=audio_params.kernel_size,
+            groups=audio_params.in_channels
         )
         self.gln1 = nn.GroupNorm(1, audio_params.out_channels)
         self.audio_conv2 = nn.Conv2d(
             in_channels=audio_params.in_channels,
             out_channels=audio_params.out_channels,
-            kernel_size=audio_params.kernel_size
+            kernel_size=audio_params.kernel_size,
+            groups=audio_params.in_channels
         )
         self.gln2 = nn.GroupNorm(1, audio_params.out_channels)
 

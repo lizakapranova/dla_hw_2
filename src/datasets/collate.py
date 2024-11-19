@@ -18,7 +18,12 @@ def collate_fn(dataset_items: list[dict]):
     result_batch = {}
 
     result_batch['mix_audio'] = pad_sequence([x['mix_audio'].squeeze(0) for x in dataset_items]).permute(1, 0)
-    result_batch['speaker_audio'] = pad_sequence([x['speaker_audio'].squeeze(0) for x in dataset_items]).permute(1, 0)
+    for item in dataset_items:
+        if item["speaker_audio"] is None:
+            result_batch["speaker_audio"] = None
+            break
+    else:
+        result_batch['speaker_audio'] = pad_sequence([x['speaker_audio'].squeeze(0) for x in dataset_items]).permute(1, 0)
     result_batch["video"] = None # FIX
 
     return result_batch
