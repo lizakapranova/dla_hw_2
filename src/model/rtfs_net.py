@@ -21,7 +21,7 @@ class RTFSNet(nn.Module):
         self.Cv = Cv
 
         self.audio_encoder = AudioEncoder(output_channels=Ca)
-        self.video_encoder = VideoEncoder() # shapes ok?
+        self.video_encoder = VideoEncoder(output_channels=Cv)
 
         self.audio_processing = RTFSBlock(Ca=Ca, D=D, n_freqs=n_freqs, layers=1)
         # self.video_processing = VP(Cv=Cv, D=D)
