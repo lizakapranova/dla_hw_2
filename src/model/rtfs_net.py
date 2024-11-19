@@ -14,14 +14,14 @@ class RTFSNet(nn.Module):
     """
     RTFS-net
     """
-    def __init__(self, n_freqs, Ca=256, Cv=256, caf_heads=4, D=64): # add more paras and config
+    def __init__(self, n_freqs, Ca=256, Cv=512, caf_heads=4, D=64): # add more paras and config
         super().__init__()
 
         self.Ca = Ca
         self.Cv = Cv
 
         self.audio_encoder = AudioEncoder(output_channels=Ca)
-        self.video_encoder = VideoEncoder() # shapes ok?
+        self.video_encoder = VideoEncoder(output_channels=Cv)
 
         self.audio_processing = RTFSBlock(Ca=Ca, D=D, n_freqs=n_freqs, layers=1)
         self.video_processing = VP(Cv=Cv, D=D)

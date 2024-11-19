@@ -115,3 +115,6 @@ __MACOSX/
 
 # dataset
 dla_dataset.zip
+
+# DCTCN model checkpoint
+src/video_encoder/lrw_resnet18_dctcn_video.pth
