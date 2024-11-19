@@ -20,9 +20,13 @@ def find_video(speaker_id, needed_dir_path):
 class CustomDirDataset(BaseDataset):
     def __init__(self, dataset_zip_path, part='train', *args, **kwargs):
         self._data_dir = ROOT_PATH / 'data'
+        print(ROOT_PATH / dataset_zip_path)
         if not self._data_dir.exists():
+            print(self._data_dir)
             self._data_dir.mkdir(exist_ok=True, parents=True)
+            print('ok?')
             self.load_dataset(ROOT_PATH / dataset_zip_path) # relative path
+            print('ok!')
 
         index = self._get_or_create_index(part)
         super().__init__(index, *args, **kwargs)
