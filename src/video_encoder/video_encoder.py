@@ -41,8 +41,8 @@ class VideoEncoder(nn.Module):
             "reduced_size": output_channels,
             "squeeze_excitation": True,
             "dropout": 0.2,
-        }).to('cpu') # remove cpu 
-        checkpoint = torch.load('src/video_encoder/lrw_resnet18_dctcn_video.pth', map_location=torch.device('cpu')) # remove cpu
+        })
+        checkpoint = torch.load('src/video_encoder/lrw_resnet18_dctcn_video.pth') # remove cpu
         self.model.load_state_dict(checkpoint['model_state_dict'])
 
         
@@ -51,7 +51,7 @@ class VideoEncoder(nn.Module):
         embedding_array = []
         for batch_idx in range(data.shape[0]):
             frame = data[batch_idx, :, :, :]
-            embedding = self.model(torch.FloatTensor(frame)[None, None, :, :, :], lengths=[frame.shape[0]])
+            embedding = self.model(frame[None, None, :, :, :], lengths=[frame.shape[0]])
             embedding_array.append(embedding[0, :, :])
         embeddings = torch.stack(embedding_array)
         return embeddings
