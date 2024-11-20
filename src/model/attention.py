@@ -40,8 +40,14 @@ class PositionalEncoding(nn.Module):
         """
         (batch_size, X, channels) shape expected
         """
+        if x.device != self.pos.device:
+            self.pos = self.pos.to(x.device)
         x = x + self.pos[:, :x.size(1)]
         return x  
+
+    def to(self, device):
+        print('HA?')
+        self.pos.to(device)
 
 
 class Attention(nn.Module):

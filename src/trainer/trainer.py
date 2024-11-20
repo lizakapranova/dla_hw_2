@@ -32,7 +32,8 @@ class Trainer(BaseTrainer):
         metric_funcs = self.metrics["inference"]
         if self.is_train:
             metric_funcs = self.metrics["train"]
-            self.optimizer.zero_grad()
+            if self.accumulating is None or self.iteration % self.accumulating == 1:
+                self.optimizer.zero_grad()
 
         outputs = self.model(**batch)
         batch.update(outputs)
@@ -43,9 +44,13 @@ class Trainer(BaseTrainer):
         if self.is_train:
             batch["loss"].backward()  # sum of all losses is always called loss
             self._clip_grad_norm()
-            self.optimizer.step()
+            if self.accumulating is None or self.iteration % self.accumulating == 0:
+                # self.optimizer.zero_grad()
+                self.optimizer.step()
+                # self.optimizer.zero_grad()
             if self.lr_scheduler is not None:
                 self.lr_scheduler.step()
+            self.iteration += 1
 
         # update metrics for each loss (in case of multiple losses)
         for loss_name in self.config.writer.loss_names:

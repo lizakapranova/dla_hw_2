@@ -94,7 +94,7 @@ class RTFSBlock(nn.Module):
         for conv in self.convs:
             out = conv(out)
             A.append(F.adaptive_avg_pool2d(out, output_size=output_size))
-            A_G += F.adaptive_avg_pool2d(out, output_size=output_size)
+            A_G += A[-1]
 
         # Dual-Path architecture
 
@@ -116,6 +116,7 @@ class RTFSBlock(nn.Module):
         # Time-Frequency self-attention
 
         A_Gs = self.attention(R_ttt) + R_ttt
+        # A_Gs = R_ttt
 
         # Reconstruction
 

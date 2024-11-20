@@ -11,11 +11,10 @@ class ConvParameters:
 
 
 class CAFBlock(nn.Module):
-    def __init__(self, video_params: ConvParameters, audio_params: ConvParameters, heads: int):
+    def __init__(self, audio_params: ConvParameters, video_params: ConvParameters, heads: int):
         super(CAFBlock, self).__init__()
 
         self.heads = heads
-
         self.video_conv1 = nn.Conv1d(
             in_channels=video_params.in_channels,
             out_channels=audio_params.in_channels * heads,

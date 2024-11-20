@@ -30,6 +30,7 @@ class BaseTrainer:
         epoch_len=None,
         skip_oom=True,
         batch_transforms=None,
+        accumulating=None,
     ):
         """
         Args:
@@ -71,6 +72,8 @@ class BaseTrainer:
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
         self.batch_transforms = batch_transforms
+
+        self.accumulating = accumulating
 
         # define dataloaders
         self.train_dataloader = dataloaders["train"]
@@ -197,6 +200,7 @@ class BaseTrainer:
             logs (dict): logs that contain the average loss and metric in
                 this epoch.
         """
+        self.iteration = 1
         self.is_train = True
         self.model.train()
         self.train_metrics.reset()

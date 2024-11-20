@@ -55,6 +55,8 @@ def main(config):
         config.lr_scheduler['steps_per_epoch'] = len(dataloaders['train'])
     lr_scheduler = instantiate(config.lr_scheduler, optimizer=optimizer)
 
+    accumulating = config.trainer.accumulating
+
     # epoch_len = number of iterations for iteration-based training
     # epoch_len = None or len(dataloader) for epoch-based training
     
@@ -72,6 +74,7 @@ def main(config):
         writer=writer,
         batch_transforms=batch_transforms,
         skip_oom=config.trainer.get("skip_oom", True),
+        accumulating=accumulating
     )
 
     trainer.train()

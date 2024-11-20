@@ -2,6 +2,7 @@ import os
 import shutil
 from pathlib import Path
 
+import torch
 from tqdm.auto import tqdm
 import torchaudio
 import numpy as np
@@ -19,13 +20,9 @@ def find_video(speaker_id, needed_dir_path):
 class CustomDirDataset(BaseDataset):
     def __init__(self, dataset_zip_path, part='train', *args, **kwargs):
         self._data_dir = ROOT_PATH / 'data'
-        print(ROOT_PATH / dataset_zip_path)
         if not self._data_dir.exists():
-            print(self._data_dir)
             self._data_dir.mkdir(exist_ok=True, parents=True)
-            print('ok?')
             self.load_dataset(ROOT_PATH / dataset_zip_path) # relative path
-            print('ok!')
 
         index = self._get_or_create_index(part)
         super().__init__(index, *args, **kwargs)
@@ -93,7 +90,7 @@ class CustomDirDataset(BaseDataset):
 
         mix = self.load_audio(mix_path)
         speaker_audio = self.load_audio(audio_path) if audio_path else None
-        video = np.load(video_path)
+        video = torch.from_numpy(np.load(video_path)['data']).float()
 
         instance_data = {'mix_audio': mix, 'speaker_audio': speaker_audio, 'video': video}
         return instance_data
