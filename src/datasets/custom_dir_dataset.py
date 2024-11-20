@@ -90,7 +90,7 @@ class CustomDirDataset(BaseDataset):
 
         mix = self.load_audio(mix_path)
         speaker_audio = self.load_audio(audio_path) if audio_path else None
-        video = torch.from_numpy(np.load(video_path)['data']).float()
+        video = torch.from_numpy(np.load(video_path)['data']).float() / 255
 
         instance_data = {'mix_audio': mix, 'speaker_audio': speaker_audio, 'video': video}
         return instance_data

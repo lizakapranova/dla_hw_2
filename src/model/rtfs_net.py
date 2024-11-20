@@ -8,6 +8,7 @@ from src.model.video_processing import VP
 from src.model.caf import CAFBlock, ConvParameters
 from src.model.s3 import S3Block
 from src.audio_decoder import AudioDecoder
+import time
 
 
 class RTFSNet(nn.Module):
@@ -23,7 +24,7 @@ class RTFSNet(nn.Module):
         self.audio_encoder = AudioEncoder(output_channels=Ca)
         self.video_encoder = VideoEncoder()
 
-        # self.audio_processing = RTFSBlock(Ca=Ca, D=D, n_freqs=n_freqs, layers=1)
+        self.audio_processing = RTFSBlock(Ca=Ca, D=D, n_freqs=n_freqs, layers=1)
         self.video_processing = VP(Cv=Cv, D=D)
         
         for param in self.video_processing.parameters():
@@ -34,7 +35,7 @@ class RTFSNet(nn.Module):
 
         self.caf = CAFBlock(ConvParameters(Ca, Ca, 1), ConvParameters(Cv, Cv, 1), caf_heads) # params ok?
 
-        # self.rtfs_block = RTFSBlock(Ca=Ca, D=D, n_freqs=n_freqs, layers=rtfs_layers)
+        self.rtfs_block = RTFSBlock(Ca=Ca, D=D, n_freqs=n_freqs, layers=rtfs_layers)
 
         self.s3 = S3Block(Ca)
 
@@ -57,14 +58,14 @@ class RTFSNet(nn.Module):
         # video = torch.zeros(batch_size, 50, 100, 100).cuda() # fix this
         video_encoded = self.video_encoder(video).transpose(-1, -2)
         # print(video_encoded.shape)
-        audio = audio_encoded
-        # audio = self.audio_processing(audio_encoded) + audio_encoded
+        # audio = audio_encoded
+        audio = self.audio_processing(audio_encoded) + audio_encoded
 
         video = self.video_processing(video_encoded)
 
         x = self.caf(audio, video)
 
-        # x = self.rtfs_block(x, audio_encoded)
+        x = self.rtfs_block(x, audio_encoded)
 
         x = self.s3(audio_encoded, x)
 
