@@ -57,8 +57,8 @@ class VP(nn.Module):
             V_G += F.adaptive_avg_pool1d(out, output_size=output_size)
 
         # attention
-        # V_Gs = self.attention(V_G) + V_G
-        V_Gs = V_G
+        V_Gs = self.attention(V_G) + V_G
+        # V_Gs = V_G
 
         V_s = []
         for i in range(self.q): # 1st phase of reconstruction
