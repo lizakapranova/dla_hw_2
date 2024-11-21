@@ -6,7 +6,7 @@ from src.video_encoder.lipreading.model import Lipreading
 
 
 class VideoEncoder(nn.Module):
-    def __init__(self, output_channels=512):
+    def __init__(self, output_channels=512, device='auto'):
         super(VideoEncoder, self).__init__()
         self.model = Lipreading(modality='video',
                                 num_classes=500,
@@ -42,7 +42,9 @@ class VideoEncoder(nn.Module):
             "squeeze_excitation": True,
             "dropout": 0.2,
         })
-        checkpoint = torch.load('src/video_encoder/lrw_resnet18_dctcn_video.pth') # remove cpu
+        if device == "auto":
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        checkpoint = torch.load('src/video_encoder/lrw_resnet18_dctcn_video.pth', map_location=device)
         self.model.load_state_dict(checkpoint['model_state_dict'])
 
         

@@ -32,14 +32,13 @@ def main(config):
         device = "cuda" if torch.cuda.is_available() else "cpu"
     else:
         device = config.trainer.device
-    print(torch.cuda.get_device_name())
 
     # setup data_loader instances
     # batch_transforms should be put on device
     dataloaders, batch_transforms = get_dataloaders(config, device)
 
     # build model architecture, then print to console
-    model = instantiate(config.model).to(device)
+    model = instantiate(config.model, device=config.trainer.device).to(device)
     logger.info(model)
 
     # get function handles of loss and metrics

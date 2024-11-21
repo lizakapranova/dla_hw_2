@@ -1,5 +1,4 @@
 from torch import nn
-import torch
 
 from src.video_encoder import VideoEncoder
 from src.audio_encoder.audio_encoder import AudioEncoder
@@ -8,38 +7,44 @@ from src.model.video_processing import VP
 from src.model.caf import CAFBlock, ConvParameters
 from src.model.s3 import S3Block
 from src.audio_decoder import AudioDecoder
-import time
 
 
 class RTFSNet(nn.Module):
     """
     RTFS-net
     """
-    def __init__(self, n_freqs, Ca=256, Cv=256, caf_heads=4, D=64, rtfs_layers=6): # add more params and config
+    def __init__(self,              
+                n_freqs,
+                Ca=256, 
+                Cv=512, 
+                caf_heads=4, 
+                D=64, 
+                rtfs_layers=6, 
+                hop_length=256,
+                win_length=1024,
+                hann=False,
+                device="auto"):
         super().__init__()
 
         self.Ca = Ca
         self.Cv = Cv
 
-        self.audio_encoder = AudioEncoder(output_channels=Ca)
-        self.video_encoder = VideoEncoder()
+        self.audio_encoder = AudioEncoder(output_channels=Ca, hop_length=hop_length, win_length=win_length, hann=hann)
+        self.video_encoder = VideoEncoder(device=device)
 
         self.audio_processing = RTFSBlock(Ca=Ca, D=D, n_freqs=n_freqs, layers=1)
         self.video_processing = VP(Cv=Cv, D=D)
         
-        for param in self.video_processing.parameters():
-            pass
-            # param.requires_grad = False
         for param in self.video_encoder.parameters():
             param.requires_grad = False
 
-        self.caf = CAFBlock(ConvParameters(Ca, Ca, 1), ConvParameters(Cv, Cv, 1), caf_heads) # params ok?
+        self.caf = CAFBlock(ConvParameters(Ca, Ca, 1), ConvParameters(Cv, Cv, 1), caf_heads)
 
         self.rtfs_block = RTFSBlock(Ca=Ca, D=D, n_freqs=n_freqs, layers=rtfs_layers)
 
         self.s3 = S3Block(Ca)
 
-        self.audio_decoder = AudioDecoder(output_channels=Ca)
+        self.audio_decoder = AudioDecoder(output_channels=Ca, hop_length=hop_length, win_length=win_length, hann=hann)
 
     def forward(self, mix_audio, video, **batch):
         """
@@ -52,15 +57,11 @@ class RTFSNet(nn.Module):
             tensor of shape (B, T_a) - predicted audio
         """
         audio_input = mix_audio
-        batch_size = audio_input.size(0)
 
         audio_encoded = self.audio_encoder(audio_input).transpose(-1, -2)
-        # video = torch.zeros(batch_size, 50, 100, 100).cuda() # fix this
         video_encoded = self.video_encoder(video).transpose(-1, -2)
-        # print(video_encoded.shape)
-        # audio = audio_encoded
-        audio = self.audio_processing(audio_encoded) + audio_encoded
 
+        audio = self.audio_processing(audio_encoded) + audio_encoded
         video = self.video_processing(video_encoded)
 
         x = self.caf(audio, video)
@@ -71,7 +72,7 @@ class RTFSNet(nn.Module):
 
         x = self.audio_decoder(x.transpose(-1, -2), audio_input.size(1))
 
-        return {"predicted_audio": x} # fix tests
+        return {"predicted_audio": x}
     
     def __str__(self):
         """
