@@ -5,3 +5,6 @@ Cv: 512
 caf_heads: 4
 D: 32
 rtfs_layers: 2
+hop_length: 256
+win_length: 1024
+hann: False
