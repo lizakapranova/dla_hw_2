@@ -69,7 +69,7 @@ class Inferencer(BaseTrainer):
         self.save_path = save_path
 
         # define metrics
-        self.metrics = metrics
+        self.metrics = None
         if self.metrics is not None:
             self.evaluation_metrics = MetricTracker(
                 *[m.name for m in self.metrics["inference"]],
@@ -146,7 +146,7 @@ class Inferencer(BaseTrainer):
             predicted_audio = batch["predicted_audio"][i].clone()
 
             if self.save_path is not None:
-                torchaudio.save(self.save_path / part / speaker_folder / f"{mix_name}.wav", predicted_audio.unsqueeze(0), sample_rate=16000)
+                torchaudio.save(self.save_path / part / speaker_folder / f"{mix_name}.wav", predicted_audio.unsqueeze(0).cpu(), sample_rate=16000)
 
         return batch
 
@@ -164,8 +164,6 @@ class Inferencer(BaseTrainer):
         self.is_train = False
         self.model.eval()
 
-        self.evaluation_metrics.reset()
-
         # create Save dir
         if self.save_path is not None:
             (self.save_path / part).mkdir(exist_ok=True, parents=True)
@@ -182,5 +180,3 @@ class Inferencer(BaseTrainer):
                     part=part,
                     metrics=self.evaluation_metrics,
                 )
-
-        return self.evaluation_metrics.result()

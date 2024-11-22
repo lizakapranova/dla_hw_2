@@ -55,12 +55,7 @@ def main(config):
         skip_model_load=False,
     )
 
-    logs = inferencer.run_inference()
-
-    for part in logs.keys():
-        for key, value in logs[part].items():
-            full_key = part + "_" + key
-            print(f"    {full_key:15s}: {value}")
+    inferencer.run_inference()
 
 
 if __name__ == "__main__":

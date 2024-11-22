@@ -4,7 +4,7 @@ Ca: 256
 Cv: 512
 caf_heads: 4
 D: 64
-rtfs_layers: 2
+rtfs_layers: 4
 hop_length: 256
 win_length: 1024
 hann: False
