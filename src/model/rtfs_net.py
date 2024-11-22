@@ -24,6 +24,18 @@ class RTFSNet(nn.Module):
                 win_length=1024,
                 hann=False,
                 device="auto"):
+        """
+        Args:
+            n_fft - fft parameter for stft
+            Ca - number of input audio channels
+            Cv - number of input video channels
+            caf_heads - number of heads for caf
+            D - number of hidden channels in RTFS block
+            rtfs_layers - number of RTFS layers
+            hop_length - parameter for stft
+            win_length - parameter for stft
+            hann - parameter for stft (is hann window)
+        """
         super().__init__()
 
         self.Ca = Ca
@@ -35,7 +47,7 @@ class RTFSNet(nn.Module):
         self.audio_processing = RTFSBlock(Ca=Ca, D=D, n_freqs=n_fft // 2 - 1, layers=1)
         self.video_processing = VP(Cv=Cv, D=D)
         
-        for param in self.video_encoder.parameters():
+        for param in self.video_encoder.parameters(): # freezing parameters of video encoder
             param.requires_grad = False
 
         self.caf = CAFBlock(ConvParameters(Ca, Ca, 1), ConvParameters(Cv, Cv, 1), caf_heads)

@@ -2,10 +2,8 @@ val:
   _target_: src.datasets.CustomDirDataset
   dataset_zip_path: dla_dataset.zip
   part: val
-  limit: 4
 
 test:
   _target_: src.datasets.CustomDirDataset
   dataset_zip_path: dla_dataset.zip
   part: test
-  limit: 8
