@@ -43,17 +43,22 @@ class CustomDirDataset(BaseDataset):
         for mix_audio in tqdm(os.listdir(audio_path / 'mix')):
             s1 = mix_audio[:mix_audio.find('_')]
             s2 = mix_audio[mix_audio.find('_') + 1: mix_audio.find('.')]
+            mix_name = mix_audio[:mix_audio.find('.')]
 
             index.extend([
                 {
                     'mix_path': str(audio_path / 'mix' / mix_audio),
                     'audio_path': str(audio_path / 's1' / mix_audio),
-                    'video_path': str(video_path / f"{s1}.npz")
+                    'video_path': str(video_path / f"{s1}.npz"),
+                    'speaker_folder': 's1',
+                    'mix_name': mix_name
                 },
                 {
                     'mix_path': str(audio_path / 'mix' / mix_audio),
                     'audio_path': str(audio_path / 's2' / mix_audio),
-                    'video_path': str(video_path / f"{s2}.npz")
+                    'video_path': str(video_path / f"{s2}.npz"),
+                    'speaker_folder': 's2',
+                    'mix_name': mix_name
                 }
             ])
 
@@ -87,12 +92,23 @@ class CustomDirDataset(BaseDataset):
         mix_path = data_dict['mix_path']
         audio_path = data_dict['audio_path']
         video_path = data_dict['video_path']
+        speaker_folder = data_dict['speaker_folder']
+        mix_name = data_dict['mix_name']
 
         mix = self.load_audio(mix_path)
         speaker_audio = self.load_audio(audio_path) if audio_path else None
         video = torch.from_numpy(np.load(video_path)['data']).float() / 255
 
-        instance_data = {'mix_audio': mix, 'speaker_audio': speaker_audio, 'video': video}
+        t, h, w = video.shape
+        th, tw = (88, 88)
+        delta_w = int(round((w - tw))/2.)
+        delta_h = int(round((h - th))/2.)
+        video = video[:, delta_h:delta_h+th, delta_w:delta_w+tw]
+        (mean, std) = (0.421, 0.165)
+        video =  (video - mean) / std
+
+        instance_data = {'mix_audio': mix, 'speaker_audio': speaker_audio, 'video': video, 
+                         'speaker_folder': speaker_folder, 'mix_name': mix_name}
         return instance_data
 
 
