@@ -7,6 +7,9 @@ inference: # metrics that are calculated during inference (eval)
   - _target_: src.metrics.SiSNRi
     device: ${metrics.device}
     name: "Si-SNRi"
+  - _target_: src.metrics.SDRi
+    device: ${metrics.device}
+    name: "SDRi"
   - _target_: src.metrics.ExampleMetric
     metric:
       _target_: torchmetrics.audio.PerceptualEvaluationSpeechQuality
