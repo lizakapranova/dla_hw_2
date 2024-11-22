@@ -98,12 +98,12 @@ class CustomDirDataset(BaseDataset):
         mix = self.load_audio(mix_path)
         speaker_audio = self.load_audio(audio_path) if audio_path else None
         video = torch.from_numpy(np.load(video_path)['data']).float() / 255
-
-        t, h, w = video.shape
+        
+        _, h, w = video.shape
         th, tw = (88, 88)
-        delta_w = int(round((w - tw))/2.)
-        delta_h = int(round((h - th))/2.)
-        video = video[:, delta_h:delta_h+th, delta_w:delta_w+tw]
+        delta_w = int(round((w - tw)) / 2.)
+        delta_h = int(round((h - th)) / 2.)
+        video = video[:, delta_h:delta_h + th, delta_w:delta_w + tw]
         (mean, std) = (0.421, 0.165)
         video =  (video - mean) / std
 

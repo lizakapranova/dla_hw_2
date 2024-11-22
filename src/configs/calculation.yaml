@@ -1,0 +1,6 @@
+defaults:
+  - metrics: train_eval
+  - _self_
+
+ground_truth: data/audio/val
+predicted: data/saved/example/val
