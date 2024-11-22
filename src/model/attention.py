@@ -43,11 +43,7 @@ class PositionalEncoding(nn.Module):
         if x.device != self.pos.device:
             self.pos = self.pos.to(x.device)
         x = x + self.pos[:, :x.size(1)]
-        return x  
-
-    def to(self, device):
-        print('HA?')
-        self.pos.to(device)
+        return x
 
 
 class Attention(nn.Module):

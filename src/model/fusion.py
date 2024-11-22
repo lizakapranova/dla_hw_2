@@ -15,7 +15,7 @@ class TF_AR(nn.Module):
         """
         super().__init__()
 
-        self.W1 = ConvNorm(4, 1, "same", channels, channels, is2d=is2d) # warning ignore?
+        self.W1 = ConvNorm(4, 1, "same", channels, channels, is2d=is2d)
         self.W2 = ConvNorm(4, 1, "same", channels, channels, is2d=is2d)
         self.W3 = ConvNorm(4, 1, "same", channels, channels, is2d=is2d)
 

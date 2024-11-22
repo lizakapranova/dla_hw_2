@@ -116,7 +116,6 @@ class RTFSBlock(nn.Module):
         # Time-Frequency self-attention
 
         A_Gs = self.attention(R_ttt) + R_ttt
-        # A_Gs = R_ttt
 
         # Reconstruction
 

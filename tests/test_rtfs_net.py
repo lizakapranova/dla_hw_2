@@ -8,9 +8,9 @@ def test_rtfs_net_forward():
     Tv = 300
     H = 96
     W = 96
-    F_dim=127
+    n_fft = 256
 
-    rtfs_net = RTFSNet(n_freqs=F_dim, hop_length=128, win_length=256)
+    rtfs_net = RTFSNet(n_fft=n_fft, hop_length=128, win_length=256)
 
     audio_input = torch.randn(batch_size, Ta)
     video_input = torch.randn(batch_size, Tv, H, W)

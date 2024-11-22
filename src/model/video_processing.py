@@ -58,7 +58,6 @@ class VP(nn.Module):
 
         # attention
         V_Gs = self.attention(V_G) + V_G
-        # V_Gs = V_G
 
         V_s = []
         for i in range(self.q): # 1st phase of reconstruction

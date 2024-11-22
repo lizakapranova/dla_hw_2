@@ -39,7 +39,7 @@ class ConvNorm(nn.Module):
         return self.norm(self.conv(x))
     
 
-class FeedForwardNetwork(nn.Module): # biases?
+class FeedForwardNetwork(nn.Module):
     """
     feed-forward network for attention of video-processing
     """

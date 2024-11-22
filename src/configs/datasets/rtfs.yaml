@@ -2,10 +2,8 @@ train:
   _target_: src.datasets.CustomDirDataset
   dataset_zip_path: dla_dataset.zip
   part: train
-#  limit: 128
 
 val:
   _target_: src.datasets.CustomDirDataset
   dataset_zip_path: dla_dataset.zip
   part: val
-#  limit: 64
