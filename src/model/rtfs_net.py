@@ -14,7 +14,7 @@ class RTFSNet(nn.Module):
     RTFS-net
     """
     def __init__(self,              
-                n_freqs,
+                n_fft=1024,
                 Ca=256, 
                 Cv=512, 
                 caf_heads=4, 
@@ -29,10 +29,10 @@ class RTFSNet(nn.Module):
         self.Ca = Ca
         self.Cv = Cv
 
-        self.audio_encoder = AudioEncoder(output_channels=Ca, hop_length=hop_length, win_length=win_length, hann=hann)
+        self.audio_encoder = AudioEncoder(output_channels=Ca, n_fft=n_fft, hop_length=hop_length, win_length=win_length, hann=hann)
         self.video_encoder = VideoEncoder(device=device)
 
-        self.audio_processing = RTFSBlock(Ca=Ca, D=D, n_freqs=n_freqs, layers=1)
+        self.audio_processing = RTFSBlock(Ca=Ca, D=D, n_freqs=n_fft // 2 - 1, layers=1)
         self.video_processing = VP(Cv=Cv, D=D)
         
         for param in self.video_encoder.parameters():
@@ -40,18 +40,18 @@ class RTFSNet(nn.Module):
 
         self.caf = CAFBlock(ConvParameters(Ca, Ca, 1), ConvParameters(Cv, Cv, 1), caf_heads)
 
-        self.rtfs_block = RTFSBlock(Ca=Ca, D=D, n_freqs=n_freqs, layers=rtfs_layers)
+        self.rtfs_block = RTFSBlock(Ca=Ca, D=D, n_freqs=n_fft // 2 - 1, layers=rtfs_layers)
 
         self.s3 = S3Block(Ca)
 
-        self.audio_decoder = AudioDecoder(output_channels=Ca, hop_length=hop_length, win_length=win_length, hann=hann)
+        self.audio_decoder = AudioDecoder(output_channels=Ca, n_fft=n_fft, hop_length=hop_length, win_length=win_length, hann=hann)
 
     def forward(self, mix_audio, video, **batch):
         """
         RTFS-net forward method.
 
         Args:
-            audio_input (Tensor): input tensor of shape (B, 1, T_a)
+            audio_input (Tensor): input tensor of shape (B, T_a)
             video_input (Tensor): input tensor of shape (B, T_v, H, W)
         Returns:
             tensor of shape (B, T_a) - predicted audio

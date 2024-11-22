@@ -1,9 +1,9 @@
 _target_: src.model.RTFSNet
-n_freqs: 511
-Ca: 128
+n_fft: 1024
+Ca: 256
 Cv: 512
 caf_heads: 4
-D: 32
+D: 64
 rtfs_layers: 2
 hop_length: 256
 win_length: 1024
