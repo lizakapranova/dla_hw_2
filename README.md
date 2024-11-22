@@ -128,6 +128,12 @@ You may find the following links useful:
 - [Mamba](https://github.com/mamba-org/mamba) and [Poetry](https://python-poetry.org/): alternatives to [Conda](https://conda.io/projects/conda/en/latest/user-guide/getting-started.html) and [pip](https://pip.pypa.io/en/stable/installation/) package managers given above.
 
 - [Awesome README](https://github.com/matiassingers/awesome-readme): a list of awesome README files for inspiration. Check the basics [here](https://github.com/PurpleBooth/a-good-readme-template).
+## Instruction:
+
+Use inference.py to predict, calculate.py (config calculation.yaml) to calculate metrics (config train_eval.yaml)
+## Checkpoints:
+Model: https://disk.yandex.ru/d/dHXBHk8sl8_Ddw (write path in inference.yaml)
+Video Encoder: https://bit.ly/3ejQqrB (copy it to src/video_encoder folder)
 
 ## Credits
 
