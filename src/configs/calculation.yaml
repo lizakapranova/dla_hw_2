@@ -3,4 +3,4 @@ defaults:
   - _self_
 
 ground_truth: data/audio/val
-predicted: data/saved/example/val
+predicted: example

@@ -1,7 +1,7 @@
 defaults:
   - model: rtfs
   - metrics: train_eval
-  - datasets: rtfs_eval # we do not want to run inference on training data
+  - datasets: inference # we do not want to run inference on training data
   - dataloader: example
   - transforms: example_only_batch
   - _self_

@@ -129,10 +129,14 @@ You may find the following links useful:
 
 - [Awesome README](https://github.com/matiassingers/awesome-readme): a list of awesome README files for inspiration. Check the basics [here](https://github.com/PurpleBooth/a-good-readme-template).
 ## Instruction:
+Use this command for prediction
+```python inference.py datasets.test.dataset_path=PATH_TO_DATASET inferencer.save_path=PATH_TO_OUTPUT_FOLDER inferencer.from_pretrained=PATH_TO_CHECKPOINT```
 
-Use inference.py to predict, calculate.py (config calculation.yaml) to calculate metrics (config train_eval.yaml)
+Use this command to calculate metrics
+```python calculate.py ground_truth=PATH_TO_GROUND_TRUTH predicted=PATH_TO_PREDICTIONS```
+
 ## Checkpoints:
-Model: https://disk.yandex.ru/d/dHXBHk8sl8_Ddw (write path in inference.yaml)
+Model: https://disk.yandex.ru/d/dHXBHk8sl8_Ddw
 Video Encoder: https://bit.ly/3ejQqrB (copy it to src/video_encoder folder)
 
 ## Credits
