@@ -144,9 +144,8 @@ class Inferencer(BaseTrainer):
             speaker_folder = batch["speaker_folder"][i]
             mix_name = batch["mix_name"][i]
             predicted_audio = batch["predicted_audio"][i].clone()
-
             if self.save_path is not None:
-                torchaudio.save(self.save_path / part / speaker_folder / f"{mix_name}.wav", predicted_audio.unsqueeze(0).cpu(), sample_rate=16000)
+                torchaudio.save(self.save_path / speaker_folder / f"{mix_name}.wav", predicted_audio.unsqueeze(0).cpu(), sample_rate=16000)
 
         return batch
 

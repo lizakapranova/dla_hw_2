@@ -1,0 +1,4 @@
+test:
+  _target_: src.datasets.InferenceDataset
+  dataset_path: null
+  limit: 5
